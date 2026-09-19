@@ -8558,10 +8558,21 @@ after the scene color and depth are complete and before any later HUD view.
 */
 void VK_GuiExecutor_PrepareSpecialEffects( const viewDef_t *viewDef ) {
 	int activeMask = tr.specialEffectsEnabled;
-	if ( r_forceSpecialEffects.GetInteger() > 0 ) {
+	if ( r_forceSpecialEffects.GetInteger() < 0 || !r_specialEffects.GetBool() || r_skipPostProcess.GetBool() ) {
+		activeMask = 0;
+	} else if ( r_forceSpecialEffects.GetInteger() > 0 ) {
 		activeMask = r_forceSpecialEffects.GetInteger();
 	}
 	activeMask &= SPECIAL_EFFECT_BLUR | SPECIAL_EFFECT_AL;
+	if ( ( activeMask & SPECIAL_EFFECT_BLUR ) != 0 ) {
+		const float focus = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][5];
+		const float strength = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][6];
+		const float distanceScale = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][7];
+		const bool isJoinSoftFocus = ( focus < 0.02f && distanceScale >= 256.0f && strength >= 0.5f );
+		if ( isJoinSoftFocus && viewDef != NULL && viewDef->renderView.viewID > 0 ) {
+			activeMask &= ~SPECIAL_EFFECT_BLUR;
+		}
+	}
 
 	vkExec.pendingSpecialEffectsView =
 			activeMask != 0 ? viewDef : NULL;

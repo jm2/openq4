@@ -7976,8 +7976,20 @@ void RB_DrawSpecialEffects( const void *data ) {
 	rbRVSpecialBlurPrepared = false;
 	rbRVSpecialALPrepared = false;
 	rbRVSpecialActiveMask = tr.specialEffectsEnabled;
-	if ( r_forceSpecialEffects.GetInteger() > 0 ) {
+	if ( r_forceSpecialEffects.GetInteger() < 0 || !r_specialEffects.GetBool() || r_skipPostProcess.GetBool() ) {
+		rbRVSpecialActiveMask = 0;
+	} else if ( r_forceSpecialEffects.GetInteger() > 0 ) {
 		rbRVSpecialActiveMask = r_forceSpecialEffects.GetInteger();
+	}
+
+	if ( ( rbRVSpecialActiveMask & SPECIAL_EFFECT_BLUR ) != 0 ) {
+		const float focus = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][5];
+		const float strength = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][6];
+		const float distanceScale = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][7];
+		const bool isJoinSoftFocus = ( focus < 0.02f && distanceScale >= 256.0f && strength >= 0.5f );
+		if ( isJoinSoftFocus && backEnd.viewDef != NULL && backEnd.viewDef->renderView.viewID > 0 ) {
+			rbRVSpecialActiveMask &= ~SPECIAL_EFFECT_BLUR;
+		}
 	}
 
 	if ( backEnd.viewDef == NULL || backEnd.viewDef->renderWorld == NULL || backEnd.viewDef->numDrawSurfs <= 0 ) {
@@ -8010,12 +8022,22 @@ static void RB_DisplaySpecialEffects( const viewEntity_t *viewEnts, bool prePass
 	if ( backEnd.viewDef == NULL || !glConfig.GLSLProgramAvailable ) {
 		return;
 	}
+	if ( r_forceSpecialEffects.GetInteger() < 0 || !r_specialEffects.GetBool() || r_skipPostProcess.GetBool() ) {
+		return;
+	}
 
 	if ( prePass ) {
 		// Legacy blur is authored as a fullscreen 2D overlay. The 3D pass only captures
 		// its depth mask; the blur image itself is generated from the resolved scene when
 		// the later HUD/UI view starts.
 		if ( viewEnts == NULL && ( rbRVSpecialActiveMask & SPECIAL_EFFECT_BLUR ) != 0 ) {
+			const float focus = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][5];
+			const float strength = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][6];
+			const float distanceScale = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][7];
+			const bool isJoinSoftFocus = ( focus < 0.02f && distanceScale >= 256.0f && strength >= 0.5f );
+			if ( isJoinSoftFocus && rbRVSpecialCommandView != NULL && rbRVSpecialCommandView->renderView.viewID > 0 ) {
+				return;
+			}
 			bool restoredView = false;
 			if ( RB_PrepareRVSpecialBlurImage() ) {
 				restoredView |= RB_CompositeRVSpecialBlur();

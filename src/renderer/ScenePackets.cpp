@@ -142,6 +142,9 @@ static bool R_ScenePackets_IsRenderDemoPlaybackView( const viewDef_t *viewDef ) 
 // backend-derived packet retains the same special-frame provenance as the
 // front-end packet.
 static int R_ScenePackets_ActiveSpecialEffectsMask( void ) {
+	if ( r_forceSpecialEffects.GetInteger() < 0 || !r_specialEffects.GetBool() || r_skipPostProcess.GetBool() ) {
+		return 0;
+	}
 	int activeMask = tr.specialEffectsEnabled;
 	if ( r_forceSpecialEffects.GetInteger() > 0 ) {
 		activeMask = r_forceSpecialEffects.GetInteger();

@@ -471,8 +471,23 @@ void R_AddSpecialEffects( viewDef_t *parms ) {
 	}
 
 	activeMask = tr.specialEffectsEnabled;
-	if ( r_forceSpecialEffects.GetInteger() > 0 ) {
+	if ( r_forceSpecialEffects.GetInteger() < 0 || !r_specialEffects.GetBool() || r_skipPostProcess.GetBool() ) {
+		activeMask = 0;
+	} else if ( r_forceSpecialEffects.GetInteger() > 0 ) {
 		activeMask = r_forceSpecialEffects.GetInteger();
+	}
+
+	if ( ( activeMask & SPECIAL_EFFECT_BLUR ) != 0 ) {
+		const float focus = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][5];
+		const float strength = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][6];
+		const float distanceScale = tr.specialEffectParms[ SPECIAL_EFFECT_BLUR ][7];
+		const bool isJoinSoftFocus = ( focus < 0.02f && distanceScale >= 256.0f && strength >= 0.5f );
+		if ( isJoinSoftFocus ) {
+			if ( ( session != NULL && !session->IsGUIActive() ) || parms->renderView.viewID > 0 ) {
+				tr.specialEffectsEnabled &= ~SPECIAL_EFFECT_BLUR;
+				activeMask &= ~SPECIAL_EFFECT_BLUR;
+			}
+		}
 	}
 
 	if ( ( activeMask & ( SPECIAL_EFFECT_BLUR | SPECIAL_EFFECT_AL ) ) == 0 ) {
