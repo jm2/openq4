@@ -1213,6 +1213,24 @@ bool R_RegisterTrueTypeFont( const char *fontName, fontInfoEx_t &font ) {
 	}
 
 	if ( built != 3 ) {
+		if ( built > 0 ) {
+			if ( font.fontInfoSmall.pointSize <= 0.0f && font.fontInfoMedium.pointSize > 0.0f ) {
+				font.fontInfoSmall = font.fontInfoMedium;
+				font.maxWidthSmall = font.maxWidthMedium;
+				font.maxHeightSmall = font.maxHeightMedium;
+			}
+			if ( font.fontInfoLarge.pointSize <= 0.0f && font.fontInfoMedium.pointSize > 0.0f ) {
+				font.fontInfoLarge = font.fontInfoMedium;
+				font.maxWidthLarge = font.maxWidthMedium;
+				font.maxHeightLarge = font.maxHeightMedium;
+			} else if ( font.fontInfoLarge.pointSize <= 0.0f && font.fontInfoSmall.pointSize > 0.0f ) {
+				font.fontInfoLarge = font.fontInfoSmall;
+				font.maxWidthLarge = font.maxWidthSmall;
+				font.maxHeightLarge = font.maxHeightSmall;
+			}
+			common->Warning( "TTF font: '%s' only produced %i of 3 sizes; propagated missing sizes", fontName, built );
+			return true;
+		}
 		common->Warning( "TTF font: '%s' only produced %i of 3 sizes; using the bitmap font", fontName, built );
 		return false;
 	}
@@ -1400,7 +1418,8 @@ void R_ShutdownTrueTypeFonts( void ) {
 	}
 	ttfConsoleMaterial = NULL;
 	ttfConsoleOriginalImage = NULL;
-	ttfAtlasMaterials.DeleteContents( true );
+	// Procedural atlas definitions persist across context recreate so they can be reasserted.
+	// ttfAtlasMaterials.DeleteContents( true );
 	// Nothing may still be drawing by this point: every fontInfo_t that shares a
 	// page set is dead with the renderer, and idDeviceContext re-registers its
 	// fonts from scratch after a restart.

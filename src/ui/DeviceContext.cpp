@@ -1218,7 +1218,7 @@ bool idDeviceContext::ReloadFonts() {
 	} else if ( useFontSlot == 2 ) {
 		useFont = &activeFont->fontInfoLarge;
 	} else {
-		useFont = NULL;
+		useFont = ( activeFont != NULL ) ? &activeFont->fontInfoSmall : NULL;
 	}
 
 	return allFontsReloaded;
@@ -1245,6 +1245,7 @@ void idDeviceContext::EnsureFontsCurrent() {
 	fontsCodePageGeneration = currentCodePageGeneration;
 	if ( !ReloadFonts() ) {
 		common->Warning( "could not rebuild every GUI font" );
+		fontsVideoRestartCount = -1;
 	}
 }
 
@@ -1253,12 +1254,16 @@ void idDeviceContext::SetFont( int num ) {
 
 	if ( fonts.Num() == 0 ) {
 		activeFont = NULL;
+		useFont = NULL;
 		return;
 	}
 	if ( num >= 0 && num < fonts.Num() ) {
 		activeFont = &fonts[num];
 	} else {
 		activeFont = &fonts[0];
+	}
+	if ( activeFont != NULL && ( useFont == NULL || ( useFont != &activeFont->fontInfoSmall && useFont != &activeFont->fontInfoMedium && useFont != &activeFont->fontInfoLarge ) ) ) {
+		useFont = &activeFont->fontInfoSmall;
 	}
 }
 
@@ -2285,6 +2290,17 @@ int idDeviceContext::DrawText(float x, float y, float scale, idVec4 color, const
 	scaledFont.renderScale = openQ4_FontRenderScale( useFont, scale );
 	scaledFont.maxWidth = activeFont != NULL ? activeFont->maxWidth : 0.0f;
 	scaledFont.maxHeight = activeFont != NULL ? activeFont->maxHeight : 0.0f;
+	if ( !openQ4_HasRenderableFont( scaledFont ) && activeFont != NULL ) {
+		if ( activeFont->fontInfoSmall.pointSize > 0.0f ) {
+			useFont = &activeFont->fontInfoSmall;
+		} else if ( activeFont->fontInfoMedium.pointSize > 0.0f ) {
+			useFont = &activeFont->fontInfoMedium;
+		} else if ( activeFont->fontInfoLarge.pointSize > 0.0f ) {
+			useFont = &activeFont->fontInfoLarge;
+		}
+		scaledFont.font = useFont;
+		scaledFont.renderScale = openQ4_FontRenderScale( useFont, scale );
+	}
 
 	if ( !openQ4_HasRenderableFont( scaledFont ) || text == NULL || color.w == 0.0f ) {
 		return 0;
@@ -2904,7 +2920,17 @@ int idDeviceContext::DrawText( const char *text, float textScale, int textAlign,
 	const int visibleCellCount = charSkip > 0.0f ? idMath::FtoiFast( rectDraw.w / charSkip ) : 0;
 
 	SetFontByScale( textScale );
-	const float useScale = openQ4_FontRenderScale( useFont, textScale );
+	float useScale = openQ4_FontRenderScale( useFont, textScale );
+	if ( ( useFont == NULL || useScale == 0.0f ) && activeFont != NULL ) {
+		if ( activeFont->fontInfoSmall.pointSize > 0.0f ) {
+			useFont = &activeFont->fontInfoSmall;
+		} else if ( activeFont->fontInfoMedium.pointSize > 0.0f ) {
+			useFont = &activeFont->fontInfoMedium;
+		} else if ( activeFont->fontInfoLarge.pointSize > 0.0f ) {
+			useFont = &activeFont->fontInfoLarge;
+		}
+		useScale = openQ4_FontRenderScale( useFont, textScale );
+	}
 	if ( useFont == NULL || useScale == 0.0f ) {
 		return visibleCellCount;
 	}

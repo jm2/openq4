@@ -96,6 +96,17 @@ static void SDL3_WindowParmsFromGlimpParms(const glimpParms_t &src, renderWindow
 	dst.multiSamples = src.multiSamples;
 }
 
+static void SDL3_SyncGLConfigWindowDimensions( const renderModuleWindowInfo_t &windowInfo ) {
+	if ( windowInfo.pixelWidth > 0 && windowInfo.pixelHeight > 0 ) {
+		glConfig.vidWidth = windowInfo.pixelWidth;
+		glConfig.vidHeight = windowInfo.pixelHeight;
+	}
+	glConfig.uiViewportX = windowInfo.uiViewportX;
+	glConfig.uiViewportY = windowInfo.uiViewportY;
+	glConfig.uiViewportWidth = windowInfo.uiViewportWidth;
+	glConfig.uiViewportHeight = windowInfo.uiViewportHeight;
+}
+
 static bool SDL3_EnsureGLContextCurrent(const char *operation) {
 	if (!s_glWindow || !s_glContext) {
 		return false;
@@ -487,6 +498,7 @@ bool GLimp_Init(glimpParms_t parms) {
 
 	s_glWindowServices->RefreshNativeWindowHandles(&windowInfo);
 	s_glHDC = windowInfo.nativeDisplayHandle;
+	SDL3_SyncGLConfigWindowDimensions(windowInfo);
 	SDL3_LoadWGLExtensions();
 	if (r_swapInterval.IsModified()) {
 		r_swapInterval.ClearModified();
@@ -523,6 +535,7 @@ bool GLimp_SetScreenParms(glimpParms_t parms) {
 	renderModuleWindowInfo_t windowInfo;
 	windowServices->RefreshNativeWindowHandles(&windowInfo);
 	s_glHDC = windowInfo.nativeDisplayHandle;
+	SDL3_SyncGLConfigWindowDimensions(windowInfo);
 	r_swapInterval.SetModified();
 	if (r_swapInterval.IsModified()) {
 		r_swapInterval.ClearModified();
@@ -572,14 +585,7 @@ void GLimp_SwapBuffers(void) {
 	if (s_glWindow && s_glWindowServices != NULL && s_glWindowServices->RefreshNativeWindowHandles != NULL) {
 		renderModuleWindowInfo_t windowInfo;
 		s_glWindowServices->RefreshNativeWindowHandles(&windowInfo);
-		if (windowInfo.pixelWidth > 0 && windowInfo.pixelHeight > 0) {
-			glConfig.vidWidth = windowInfo.pixelWidth;
-			glConfig.vidHeight = windowInfo.pixelHeight;
-		}
-		glConfig.uiViewportX = windowInfo.uiViewportX;
-		glConfig.uiViewportY = windowInfo.uiViewportY;
-		glConfig.uiViewportWidth = windowInfo.uiViewportWidth;
-		glConfig.uiViewportHeight = windowInfo.uiViewportHeight;
+		SDL3_SyncGLConfigWindowDimensions(windowInfo);
 	}
 
 	if (SDL3_EnsureGLContextCurrent("swap buffers") && !s_glWindowServices->SwapGLWindow()) {

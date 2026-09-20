@@ -4944,6 +4944,7 @@ static void R_PerformFullVidRestart( bool forceWindow ) {
 
 	R_InitFreeType();
 	R_RefreshConsoleFontAtlas();
+	R_TTFRestoreAtlasMaterials();
 }
 
 static GLenum R_ClearPendingGLErrors( void ) {
