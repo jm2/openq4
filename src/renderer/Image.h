@@ -207,6 +207,11 @@ public:
 	textureUsage_t GetUsage() const { return usage; }
 	bool		IsDefaulted() const { return defaulted; }
 	bool		IsScratchImage() const { return scratchImage; }
+	bool		IsFontAtlas() const {
+		return idStr::Icmpn( imgName, "_ttfatlas", 9 ) == 0 ||
+		       idStr::Icmpn( imgName, "_ttfconsole", 11 ) == 0 ||
+		       idStr::Icmp( imgName, "_consoleFont" ) == 0;
+	}
 
 	void		SetReferencedOutsideLevelLoad() { referencedOutsideLevelLoad = true; }
 	void		SetReferencedInsideLevelLoad() { levelLoadReferenced = true; }

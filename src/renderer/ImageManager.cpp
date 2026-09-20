@@ -997,7 +997,11 @@ void idImageManager::ReloadImages( bool all ) {
 	R_SetDDSProbeCacheActive( false );
 
 	for ( int i = 0 ; i < globalImages->images.Num() ; i++ ) {
-		globalImages->images[ i ]->Reload( all );
+		idImage *image = globalImages->images[ i ];
+		if ( image == NULL || image->IsFontAtlas() ) {
+			continue;
+		}
+		image->Reload( all );
 	}
 }
 

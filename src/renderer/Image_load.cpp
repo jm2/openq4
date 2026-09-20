@@ -1750,6 +1750,14 @@ void idImage::Reload( bool force ) {
 		return;
 	}
 
+	// Procedural font atlases are CPU-generated FreeType pages rather than
+	// disk files or render targets. Never purge or reallocate them with NULL
+	// data during texture reload, or UI text will be destroyed when texture
+	// reduction/quality cvars change.
+	if ( IsFontAtlas() ) {
+		return;
+	}
+
 	// persistent images are runtime render targets, not file-backed
 	if ( opts.isPersistant ) {
 		common->DPrintf( "reallocating persistent %s.\n", GetName() );
